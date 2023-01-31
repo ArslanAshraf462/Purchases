@@ -15,6 +15,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late StreamSubscription<List<PurchaseDetails>> subscription;
   // keeps a list of products queried from Playstore or app store
   List<ProductDetails> products =[];
+  List<PurchaseDetails> purchases = <PurchaseDetails>[];
+  int credits = 0;
   Set<String> subscriptionProductId = prod_id;
   @override
   void initState() {
@@ -40,11 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
         bool valid = await verifyPurchase(purchaseDetails);
         //// to-do implementation of after purchased
         if(valid){
+          verifyAndDeliverProducts(purchaseDetails);
           print('Deliver Products');
         }else{
           print('show invalid purchase UI and invalid purchases');
         }
-       // verifyAndDeliverProduct(purchaseDetails);
+        
       }else if(purchaseDetails.status == PurchaseStatus.error){
         print('show error UI & handle errors.');
       //  handleError(purchaseDetails.error);
@@ -66,7 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if(response.notFoundIDs.isNotEmpty){
         // Handle the error
       }
-       products = response.productDetails;
+       //products = response.productDetails;
+       setState(() {
+         products = response.productDetails;;
+       });
       for(ProductDetails product in products){
         print('product: ' + product.id);
         print('price: ' + product.price);
@@ -79,6 +85,55 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Unfortunately store is not available');
     }
   }
+  // checks if a user has purchased a certain product
+  dynamic _hasUserPurchased(String productId) {
+    if (purchases.isNotEmpty) {
+      return purchases.firstWhere(
+        (purchase) => purchase.productID == productId,
+      );
+    }
+    return null;
+  }
+// Method to check if the product has been purchased already or not.
+  void verifyAndDeliverProducts(PurchaseDetails purchaseDetails) {
+    PurchaseDetails? purchase = _hasUserPurchased(purchaseDetails.productID);
+
+    if (purchase != null &&
+        purchase.status == PurchaseStatus.purchased &&
+        (purchaseDetails.productID == 'coins_taken' || purchaseDetails.productID == 'coins_taken1')) {
+      credits = 10;
+      setState(() {});
+    } else {
+      setState(() {});
+    }
+  }
+// Method to purchase a product
+  void _buyProduct(ProductDetails prod) async {
+    debugPrint(prod.id);
+    final PurchaseParam purchaseParam = PurchaseParam(productDetails: prod);
+    debugPrint(
+        'Product details =====> ${purchaseParam.productDetails.rawPrice}');
+    switch (prod.id) {
+      case 'coins_taken':
+            await inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
+        break;
+      case 'coins_taken1':
+        await inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+        break;
+    }
+    
+  }
+
+  _spendCredit(PurchaseDetails hasPurchased) async {
+    setState(() {
+      credits--;
+    });
+    if (credits == 1) {
+      purchases.removeWhere(
+          (element) => element.productID == hasPurchased.productID);
+      setState(() {});
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,18 +143,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            for(ProductDetails product in products)...[
+            for (var prod in products)
+            if (_hasUserPurchased(prod.id) != null) ...[
+              if (prod.id == 'coins_taken') ...[
+                const Icon(Icons.diamond),
+                Text(
+                  credits.toString(),
+                  style: const TextStyle(fontSize: 60),
+                ),
+                ElevatedButton(
+                  onPressed: () => _spendCredit(_hasUserPurchased(prod.id)),
+                  child: const Text('Consume'),
+                ),
+              ] else if (prod.id == 'coins_taken1') ...[
+               const Icon(Icons.star),
+               const Text(
+                    'Succesfully delivered one time purchased stars now you can see stars'),
+              ] 
+            ] else ...[
               Text(
-                product.title,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                prod.title,
+                style: const TextStyle(fontWeight: FontWeight.bold,fontSize: 30),
               ),
-              Text(product.description),
+              Text(prod.description),
               Text(
-                product.price,
-                style: TextStyle(color: Colors.blueAccent, fontSize: 40),
+                prod.price,
+                style: const TextStyle(color: Colors.blue, fontSize: 40),
               ),
-            ],
+              ElevatedButton(
+                  onPressed: () => _buyProduct(prod), child: const Text('Buy it',style: TextStyle(fontSize: 35),),),
+            ]
             
           ],
         ),
