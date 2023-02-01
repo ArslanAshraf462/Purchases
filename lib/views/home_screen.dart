@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:purchases/widgets/non_consumable_star.dart';
+import 'package:purchases/widgets/subscription.dart';
 
-Set<String> prod_id = {'coins_taken','coins_taken1'};
+Set<String> prod_id = {'coins_taken','coins_taken1','flutter_gems'};
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -100,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (purchase != null &&
         purchase.status == PurchaseStatus.purchased &&
-        (purchaseDetails.productID == 'coins_taken' || purchaseDetails.productID == 'coins_taken1')) {
+        (purchaseDetails.productID == 'coins_taken' || purchaseDetails.productID == 'coins_taken1' || purchaseDetails.productID == 'flutter_gems')) {
       credits = 10;
       setState(() {});
     } else {
@@ -120,6 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'coins_taken1':
         await inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
         break;
+        case 'flutter_gems':
+        await inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+        break;
     }
     
   }
@@ -134,6 +139,15 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {});
     }
   }
+
+  Future<void> restorePurchases() async {
+        debugPrint('running restore purchases');
+
+    await inAppPurchase.restorePurchases();
+    debugPrint('restored purchases');
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,6 +160,14 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+              ElevatedButton(
+                  onPressed: () async{
+                   await restorePurchases();
+                  } ,
+                  child: const Text('Restore purchases')),
+              const SizedBox(
+                height: 50,
+              ),
             for (var prod in products)
             if (_hasUserPurchased(prod.id) != null) ...[
               if (prod.id == 'coins_taken') ...[
@@ -156,12 +178,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () => _spendCredit(_hasUserPurchased(prod.id)),
-                  child: const Text('Consume'),
+                  child: const Text('Consumeable Coins'),
                 ),
               ] else if (prod.id == 'coins_taken1') ...[
                const Icon(Icons.star),
-               const Text(
-                    'Succesfully delivered one time purchased stars now you can see stars'),
+               ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const NonConsumableStarScreen(),
+                                      ));
+                                },
+                                child: const Text('Coins'),),
+              ] 
+              else if (prod.id == 'flutter_gems') ...[
+               const Icon(Icons.star),
+              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SubscriptionScreen(),
+                                      ));
+                                },
+                                child: const Text('Access'))
               ] 
             ] else ...[
               Text(
