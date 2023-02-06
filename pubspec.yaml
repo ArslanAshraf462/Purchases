@@ -38,6 +38,7 @@ dependencies:
   rename: ^2.1.1
   in_app_purchase: ^3.1.1
   shared_preferences: ^2.0.17
+  http: ^0.13.5
 
 dev_dependencies:
   flutter_test:

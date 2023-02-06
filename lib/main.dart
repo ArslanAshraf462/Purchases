@@ -4,8 +4,10 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
@@ -129,6 +131,62 @@ class _MyAppState extends State<_MyApp> {
       _loading = false;
     });
   }
+
+   getAccessToken() async {
+  // Define the necessary parameters
+  final Map<String, String> body = {
+    'grant_type': 'refresh_token',
+    'client_id': "336695768726-864h8d687gosi9ls2h4cc4slo2vjte2b.apps.googleusercontent.com",
+    //'client_secret': 'AIzaSyAzNPql5oABi6imdZ8fyyHzaRYiTvJNPJI',
+    'refresh_token': 'AIzaSyAzNPql5oABi6imdZ8fyyHzaRYiTvJNPJI',
+  };
+try{
+// Make a request to the API
+  final http.Response response = await http.post( Uri.parse('https://oauth2.googleapis.com/token'),
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body,
+  );
+
+ 
+  if(response.statusCode == 200){
+  print('response ${response.body}');
+   // Extract the access token from the response
+  final Map<String, dynamic> data = json.decode(response.body);
+  final String accessToken = data['access_token'];
+
+  return accessToken;
+}else{
+  print('else response ${response.body}');
+}
+}catch(e){
+print('error ${e.toString()}');
+}
+  
+}
+
+ _validationApi() async {
+    
+
+// Example usage:
+String accessToken = await getAccessToken();
+try{
+final http.Response response = await http.get(
+  Uri.parse('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{com.app.purchases}/purchases/products/{flutter_gems}/tokens/{accessToken}'),
+  headers: {'Authorization': 'Bearer $accessToken'},
+);
+if(response.statusCode == 200){
+  print('response ${response.body}');
+  return response.body;
+}else{
+  print('else response ${response.body}');
+}
+}catch(e){
+print('response of error ${e.toString()}');
+}
+// Use the access token to make API requests
+
+  }
+
 
   @override
   void dispose() {
@@ -416,6 +474,9 @@ class _MyAppState extends State<_MyApp> {
             onPressed: () => _inAppPurchase.restorePurchases(),
             child: const Text('Restore purchases'),
           ),
+          ElevatedButton(onPressed: (){
+              _validationApi();
+            }, child: Text('check'),),
         ],
       ),
     );
